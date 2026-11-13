@@ -1,0 +1,26 @@
+[versions]
+kotlin = "2.4.21"
+agp = "9.5.0"
+junit = "6.1.3"
+junit-platform = "6.1.3"
+maven-publish = "0.37.0"
+camera = "1.0.0"
+sdl-kmp = "3.4.18.1"
+imgui-kmp = "1.93.0.1"
+coroutines = "1.11.0"
+
+[plugins]
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-kmp-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
+
+[libraries]
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit" }
+junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher", version.ref = "junit-platform" }
+camera-kmp = { module = "cn.enaium.camera:camera-kmp", version.ref = "camera" }
+sdl-kmp = { module = "cn.enaium.sdl:sdl-kmp", version.ref = "sdl-kmp" }
+imgui-kmp = { module = "cn.enaium.imgui:imgui-kmp", version.ref = "imgui-kmp" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }

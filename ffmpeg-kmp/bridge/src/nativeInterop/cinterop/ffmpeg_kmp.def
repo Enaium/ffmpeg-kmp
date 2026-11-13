@@ -1,0 +1,21 @@
+headers = ffmpeg_kmp.h
+package = ffmpeg_kmp
+compilerOpts = -std=c11
+
+# FFmpeg's static archives reference libm, pthreads and the platform's core
+# frameworks. The shim itself only needs libm.
+linkerOpts.linux_x64 = -lm -lpthread -ldl
+linkerOpts.linux_arm64 = -lm -lpthread -ldl
+linkerOpts.mingw_x64 = -lm -lws2_32 -lbcrypt -lsecur32 -lncrypt -lcrypt32 -lole32 -loleaut32 -lstrmiids -luuid -lshlwapi -lpsapi -luser32 -lgdi32
+linkerOpts.macos_x64 = -lm \
+    -framework CoreFoundation -framework CoreVideo -framework CoreMedia \
+    -framework AVFoundation -framework CoreGraphics -framework ApplicationServices \
+    -framework Foundation
+linkerOpts.macos_arm64 = -lm \
+    -framework CoreFoundation -framework CoreVideo -framework CoreMedia \
+    -framework AVFoundation -framework CoreGraphics -framework ApplicationServices \
+    -framework Foundation
+linkerOpts.android_arm64 = -lm -llog
+linkerOpts.android_arm32 = -lm -llog
+linkerOpts.android_x64 = -lm -llog
+linkerOpts.android_x86 = -lm -llog
