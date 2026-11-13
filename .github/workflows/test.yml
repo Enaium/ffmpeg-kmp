@@ -30,14 +30,6 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Cache the FFmpeg build tree
-        uses: actions/cache@v4
-        with:
-          path: build/ffmpeg
-          key: ffmpeg-${{ runner.os }}-${{ hashFiles('.gitmodules') }}-${{ github.sha }}
-          restore-keys: |
-            ffmpeg-${{ runner.os }}-${{ hashFiles('.gitmodules') }}-
-
       - name: Setup Emscripten
         run: |
           git clone --depth 1 https://github.com/emscripten-core/emsdk.git "$HOME/emsdk"
@@ -172,14 +164,6 @@ jobs:
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platforms;android-37.0" "platforms;android-37.1" "ndk;27.0.12077973" >/dev/null
-
-      - name: Cache the FFmpeg build tree
-        uses: actions/cache@v4
-        with:
-          path: build/ffmpeg
-          key: ffmpeg-${{ runner.os }}-${{ hashFiles('.gitmodules') }}-${{ github.sha }}
-          restore-keys: |
-            ffmpeg-${{ runner.os }}-${{ hashFiles('.gitmodules') }}-
 
       - name: Run JVM, Linux, Android host and cross-target tests
         run: |
