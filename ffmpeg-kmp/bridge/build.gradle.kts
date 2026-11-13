@@ -534,6 +534,8 @@ fun registerNativeArchive(target: FFmpegTarget) {
 
     val configureTask = tasks.register<Exec>("configureNative_$targetName") {
         onlyIf { target.canBuild }
+        outputs.upToDateWhen { false }
+        outputs.cacheIf { false }
         dependsOn(ffmpegBuildTasks.getValue(targetName))
         workingDir = cmakeBuildDir
         if (hostOs.isWindows) environment("PATH", msys2Path())
@@ -642,6 +644,8 @@ val configureWebWasm = tasks.register<Exec>("configureFFmpegWasm") {
     group = "build"
     description = "Configures FFmpeg for WebAssembly with Emscripten."
     onlyIf { canBuildWebWasm }
+    outputs.upToDateWhen { false }
+    outputs.cacheIf { false }
     workingDir = ffmpegWasmDir
     configureEmscripten()
     doFirst {
