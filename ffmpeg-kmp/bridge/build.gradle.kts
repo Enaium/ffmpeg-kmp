@@ -30,14 +30,16 @@ val makeJobs = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
 fun msys2Root(): String =
     System.getenv("MSYS2_ROOT")?.takeIf { it.isNotBlank() } ?: "C:/msys64"
 
-fun windowsGcc(): String =
-    File(msys2Root(), "mingw64/bin/x86_64-w64-mingw32-gcc.exe")
-        .absolutePath.replace('\\', '/')
-
-fun windowsTool(name: String): String =
-    File(msys2Root(), "mingw64/bin/$name.exe").absolutePath.replace('\\', '/')
+fun windowsTool(name: String): String = listOf(
+    File("C:/mingw64/bin/$name.exe"),
+    File(msys2Root(), "mingw64/bin/$name.exe"),
+).firstOrNull { it.isFile }
+    ?.absolutePath
+    ?.replace('\\', '/')
+    ?: resolveTool(name)
 
 fun msys2Path(): String = listOf(
+    File("C:/mingw64/bin").absolutePath,
     File(msys2Root(), "mingw64/bin").absolutePath,
     File(msys2Root(), "usr/bin").absolutePath,
     System.getenv("PATH").orEmpty(),
@@ -263,7 +265,7 @@ val ffmpegTargets = buildList {
     val mingwCmakeArgs = if (hostOs.isWindows) {
         listOf(
             "-G", "MinGW Makefiles",
-            "-DCMAKE_C_COMPILER=${windowsGcc()}",
+            "-DCMAKE_C_COMPILER=${windowsTool("gcc")}",
             "-DCMAKE_AR=${windowsTool("ar")}",
             "-DCMAKE_RANLIB=${windowsTool("ranlib")}",
             "-DCMAKE_MAKE_PROGRAM=$msysMake",

@@ -48,13 +48,19 @@ val cmakeBuildDir = layout.buildDirectory.dir("cmake-jni/$classifier")
 val ffmpegBuildDir = rootProject.layout.buildDirectory.dir("ffmpeg/mingwX64")
 val msysRoot = System.getenv("MSYS2_ROOT")?.takeIf { it.isNotBlank() } ?: "C:/msys64"
 val msysMake = File(msysRoot, "usr/bin/make.exe").absolutePath.replace('\\', '/')
-val msysGcc = File(msysRoot, "mingw64/bin/x86_64-w64-mingw32-gcc.exe")
-    .absolutePath.replace('\\', '/')
-val msysAr = File(msysRoot, "mingw64/bin/ar.exe")
-    .absolutePath.replace('\\', '/')
-val msysRanlib = File(msysRoot, "mingw64/bin/ranlib.exe")
-    .absolutePath.replace('\\', '/')
+fun windowsTool(name: String): String = listOf(
+    File("C:/mingw64/bin/$name.exe"),
+    File(msysRoot, "mingw64/bin/$name.exe"),
+).firstOrNull { it.isFile }
+    ?.absolutePath
+    ?.replace('\\', '/')
+    ?: resolveTool(name)
+
+val msysGcc = windowsTool("gcc")
+val msysAr = windowsTool("ar")
+val msysRanlib = windowsTool("ranlib")
 val msysPath = listOf(
+    File("C:/mingw64/bin").absolutePath,
     File(msysRoot, "mingw64/bin").absolutePath,
     File(msysRoot, "usr/bin").absolutePath,
     System.getenv("PATH").orEmpty(),
