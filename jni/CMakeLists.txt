@@ -53,7 +53,10 @@ include_directories(
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 
-add_library(ffmpeg_shim STATIC "${CMAKE_CURRENT_SOURCE_DIR}/ffmpeg_kmp.c")
+add_library(ffmpeg_shim STATIC
+  "${CMAKE_CURRENT_SOURCE_DIR}/ffmpeg_kmp.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/win_time_compat.c"
+)
 target_include_directories(ffmpeg_shim PUBLIC
   "${FFMPEG_SOURCE_DIR}"
   "${FFMPEG_BUILD_DIR}"
