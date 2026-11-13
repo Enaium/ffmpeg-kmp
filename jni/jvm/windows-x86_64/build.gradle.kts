@@ -47,7 +47,7 @@ val nativeOutputDir = layout.buildDirectory.dir("jni-native/$classifier")
 val cmakeBuildDir = layout.buildDirectory.dir("cmake-jni/$classifier")
 val ffmpegBuildDir = rootProject.layout.buildDirectory.dir("ffmpeg/mingwX64")
 val msysRoot = System.getenv("MSYS2_ROOT")?.takeIf { it.isNotBlank() } ?: "C:/msys64"
-val msysMake = File(msysRoot, "mingw64/bin/mingw32-make.exe").absolutePath.replace('\\', '/')
+val msysMake = File(msysRoot, "mingw64/bin/ninja.exe").absolutePath.replace('\\', '/')
 fun windowsTool(name: String): String = listOf(
     File("C:/mingw64/bin/$name.exe"),
     File(msysRoot, "mingw64/bin/$name.exe"),
@@ -102,7 +102,7 @@ val configureJniLibrary = tasks.register<Exec>("configureJniLibrary") {
             "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=${outDir.absolutePath}",
         ) + if (hostWindows) {
             listOf(
-                "-G", "MinGW Makefiles",
+                "-G", "Ninja",
                 "-DCMAKE_C_COMPILER=$msysGcc",
                 "-DCMAKE_AR=$msysAr",
                 "-DCMAKE_RANLIB=$msysRanlib",
