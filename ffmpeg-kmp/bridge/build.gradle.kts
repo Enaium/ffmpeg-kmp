@@ -225,7 +225,7 @@ val ffmpegTargets = buildList {
             add("--cc=x86_64-w64-mingw32-gcc")
             add("--cxx=x86_64-w64-mingw32-g++")
         }
-        add("--enable-dshow")
+        add("--enable-indev=dshow")
     }
     val msysMake = System.getenv("MSYS2_ROOT")?.let { "$it/usr/bin/make.exe" }
         ?: "C:/msys64/usr/bin/make.exe"

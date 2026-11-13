@@ -4,8 +4,8 @@ compilerOpts = -std=c11
 
 # FFmpeg's static archives reference libm, pthreads and the platform's core
 # frameworks. The shim itself only needs libm.
-linkerOpts.linux_x64 = -lm -lpthread -ldl
-linkerOpts.linux_arm64 = -lm -lpthread -ldl
+linkerOpts.linux_x64 = -lm -lpthread -ldl -Wl,--defsym=fcntl64=fcntl
+linkerOpts.linux_arm64 = -lm -lpthread -ldl -Wl,--defsym=fcntl64=fcntl
 linkerOpts.mingw_x64 = -lm -lws2_32 -lbcrypt -lsecur32 -lncrypt -lcrypt32 -lole32 -loleaut32 -lstrmiids -luuid -lshlwapi -lpsapi -luser32 -lgdi32
 linkerOpts.macos_x64 = -lm \
     -framework CoreFoundation -framework CoreVideo -framework CoreMedia \
