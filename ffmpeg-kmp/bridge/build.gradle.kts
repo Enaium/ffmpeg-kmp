@@ -766,8 +766,9 @@ tasks.matching {
         it.name.startsWith("compileTestKotlinWasmJs") ||
         it.name == "jsSourcesJar" ||
         it.name == "wasmJsSourcesJar" ||
-        it.name == "kotlinMultiplatformSourcesJar" ||
-        it.name == "metadataSourcesJar" ||
+        it.name == "sourcesJar" ||
+        it.name.endsWith("SourcesJar") ||
+        it.name.contains("WebMain") ||
         it.name == "jsNodeTest" ||
         it.name == "wasmJsNodeTest"
 }.configureEach {
