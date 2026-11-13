@@ -18,23 +18,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if defined(_WIN32)
-#include <time.h>
-
-/*
- * FFmpeg's mingw-w64 build can reference the 64-bit-time CRT aliases. The
- * Kotlin/Native MinGW sysroot is older and does not export them; forward to
- * the ordinary CRT entry points.
- */
-int clock_gettime64(clockid_t id, struct timespec *tp) {
-    return clock_gettime(id, tp);
-}
-
-int nanosleep64(const struct timespec *req, struct timespec *rem) {
-    return nanosleep(req, rem);
-}
-#endif
-
 #if defined(__linux__) && !defined(__ANDROID__)
 #include <fcntl.h>
 #include <stdarg.h>
