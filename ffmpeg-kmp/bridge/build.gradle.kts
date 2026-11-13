@@ -348,6 +348,19 @@ ffmpegTargets.forEach { target ->
                 set -e
                 cd "$workingDir"
                 "$configure" $args
+                if command -v cygpath >/dev/null 2>&1; then
+                  src_win="$(cygpath -m "$(dirname "$configure")")"
+                  src_posix="$(cygpath -u "$src_win")"
+                  if [ ! -f Makefile ]; then echo "configure did not create Makefile"; exit 1; fi
+                  if [ ! -f "$(dirname "$configure")/Makefile" ]; then
+                    echo "source Makefile is missing: $(dirname "$configure")/Makefile"
+                    ls -la "$(dirname "$configure")" | head
+                    exit 1
+                  fi
+                  sed -i "s|$src_posix|$src_win|g" Makefile
+                  [ -f ffbuild/config.mak ] && sed -i "s|$src_posix|$src_win|g" ffbuild/config.mak
+                  [ -L src ] && ln -sfn "$src_win" src
+                fi
                 make -j$makeJobs
                 """.trimIndent() + "\n",
             )
