@@ -89,7 +89,6 @@ elseif(WIN32)
     "-luser32"
     "-lgdi32"
     "-lavicap32"
-    "-liconv"
   )
 elseif(ANDROID)
   set(FFMPEG_PLATFORM_LIBS "-lm" "-llog")

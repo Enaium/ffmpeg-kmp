@@ -260,6 +260,7 @@ val ffmpegTargets = buildList {
             add("--cxx=x86_64-w64-mingw32-g++")
         }
         add("--enable-indev=dshow")
+        add("--disable-iconv")
     }
     val msysMake = listOf(
         File("C:/mingw64/bin/make.exe"),
