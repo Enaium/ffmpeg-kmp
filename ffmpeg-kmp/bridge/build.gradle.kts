@@ -27,8 +27,20 @@ val androidNdkHost: String? = rootProject.extra["androidNdkHost"] as String?
 val androidApiLevel = 21
 val makeJobs = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
 
+fun msys2Root(): String =
+    System.getenv("MSYS2_ROOT")?.takeIf { it.isNotBlank() } ?: "C:/msys64"
+
+fun windowsGcc(): String =
+    File(msys2Root(), "mingw64/bin/gcc.exe").absolutePath.replace('\\', '/')
+
+fun msys2Path(): String = listOf(
+    File(msys2Root(), "mingw64/bin").absolutePath,
+    File(msys2Root(), "usr/bin").absolutePath,
+    System.getenv("PATH").orEmpty(),
+).joinToString(File.pathSeparator)
+
 fun windowsBash(): String {
-    val msysRoot = System.getenv("MSYS2_ROOT")?.takeIf { it.isNotBlank() } ?: "C:/msys64"
+    val msysRoot = msys2Root()
     return listOf(
         File(msysRoot, "usr/bin/bash.exe"),
         File("C:/Program Files/Git/bin/bash.exe"),
@@ -236,12 +248,11 @@ val ffmpegTargets = buildList {
         }
         add("--enable-indev=dshow")
     }
-    val msysMake = System.getenv("MSYS2_ROOT")?.let { "$it/usr/bin/make.exe" }
-        ?: "C:/msys64/usr/bin/make.exe"
+    val msysMake = File(msys2Root(), "usr/bin/make.exe").absolutePath.replace('\\', '/')
     val mingwCmakeArgs = if (hostOs.isWindows) {
         listOf(
             "-G", "MinGW Makefiles",
-            "-DCMAKE_C_COMPILER=gcc",
+            "-DCMAKE_C_COMPILER=${windowsGcc()}",
             "-DCMAKE_MAKE_PROGRAM=$msysMake",
         )
     } else {
@@ -525,6 +536,7 @@ fun registerNativeArchive(target: FFmpegTarget) {
         onlyIf { target.canBuild }
         dependsOn(ffmpegBuildTasks.getValue(targetName))
         workingDir = cmakeBuildDir
+        if (hostOs.isWindows) environment("PATH", msys2Path())
         doFirst {
             cmakeBuildDir.mkdirs()
             outputDir.mkdirs()
@@ -547,6 +559,7 @@ fun registerNativeArchive(target: FFmpegTarget) {
         onlyIf { target.canBuild }
         dependsOn(configureTask)
         workingDir = cmakeBuildDir
+        if (hostOs.isWindows) environment("PATH", msys2Path())
         commandLine(cmakeExecutable, "--build", ".", "--target", "ffmpeg_kmp_archive", "--config", "Release")
         inputs.file(jniDir.resolve("ffmpeg_kmp.c"))
         inputs.file(jniDir.resolve("include/ffmpeg_kmp.h"))

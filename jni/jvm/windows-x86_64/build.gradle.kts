@@ -39,6 +39,14 @@ val cmakeExecutable: String = rootProject.extra["cmakeExecutable"] as String
 val nativeOutputDir = layout.buildDirectory.dir("jni-native/$classifier")
 val cmakeBuildDir = layout.buildDirectory.dir("cmake-jni/$classifier")
 val ffmpegBuildDir = rootProject.layout.buildDirectory.dir("ffmpeg/mingwX64")
+val msysRoot = System.getenv("MSYS2_ROOT")?.takeIf { it.isNotBlank() } ?: "C:/msys64"
+val msysMake = File(msysRoot, "usr/bin/make.exe").absolutePath.replace('\\', '/')
+val msysGcc = File(msysRoot, "mingw64/bin/gcc.exe").absolutePath.replace('\\', '/')
+val msysPath = listOf(
+    File(msysRoot, "mingw64/bin").absolutePath,
+    File(msysRoot, "usr/bin").absolutePath,
+    System.getenv("PATH").orEmpty(),
+).joinToString(File.pathSeparator)
 
 val configureJniLibrary = tasks.register<Exec>("configureJniLibrary") {
     group = "build"
@@ -52,6 +60,7 @@ val configureJniLibrary = tasks.register<Exec>("configureJniLibrary") {
         buildDir.mkdirs()
     }
     workingDir = buildDir
+    if (OperatingSystem.current().isWindows) environment("PATH", msysPath)
     val javaHome = System.getProperty("java.home") ?: System.getenv("JAVA_HOME") ?: ""
     val jniInclude = if (javaHome.isNotEmpty()) "$javaHome/include" else ""
     val platformInclude = if (OperatingSystem.current().isWindows) {
@@ -61,8 +70,6 @@ val configureJniLibrary = tasks.register<Exec>("configureJniLibrary") {
         rootProject.file("jni/include/win32").absolutePath
     }
     val hostWindows = OperatingSystem.current().isWindows
-    val msysMake = System.getenv("MSYS2_ROOT")?.let { "$it/usr/bin/make.exe" }
-        ?: "C:/msys64/usr/bin/make.exe"
     commandLine(
         listOf(
             cmakeExecutable,
@@ -78,7 +85,7 @@ val configureJniLibrary = tasks.register<Exec>("configureJniLibrary") {
             "-G", "MinGW Makefiles",
         ) + if (hostWindows) {
             listOf(
-                "-DCMAKE_C_COMPILER=gcc",
+                "-DCMAKE_C_COMPILER=$msysGcc",
                 "-DCMAKE_MAKE_PROGRAM=$msysMake",
             )
         } else {
@@ -99,6 +106,7 @@ val buildJniLibrary = tasks.register<Exec>("buildJniLibrary") {
     onlyIf { canBuildHere }
     dependsOn(configureJniLibrary)
     workingDir = cmakeBuildDir.get().asFile
+    if (OperatingSystem.current().isWindows) environment("PATH", msysPath)
     commandLine(cmakeExecutable, "--build", ".", "--target", "ffmpeg_jni", "--config", "Release")
     inputs.files(
         rootProject.file("jni/CMakeLists.txt"),
