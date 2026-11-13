@@ -18,6 +18,25 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(__linux__) && !defined(__ANDROID__)
+#include <fcntl.h>
+#include <stdarg.h>
+#include <unistd.h>
+
+/*
+ * FFmpeg is compiled with _FILE_OFFSET_BITS=64, so glibc headers redirect
+ * fcntl() to fcntl64(). Kotlin/Native's bundled glibc sysroot predates that
+ * alias; provide the symbol here so the static link resolves it.
+ */
+int fcntl64(int fd, int cmd, ...) {
+    va_list args;
+    va_start(args, cmd);
+    void *arg = va_arg(args, void *);
+    va_end(args);
+    return fcntl(fd, cmd, arg);
+}
+#endif
+
 #include <libavcodec/avcodec.h>
 #include <libavdevice/avdevice.h>
 #include <libavfilter/avfilter.h>

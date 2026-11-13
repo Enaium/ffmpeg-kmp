@@ -55,6 +55,13 @@ fun hasExecutable(name: String): Boolean =
         ?.map { File(it, name) }
         ?.any { it.isFile && it.canExecute() } == true
 
+fun resolveTool(name: String): String =
+    System.getenv("PATH")?.split(File.pathSeparator).orEmpty()
+        .map { File(it, name) }
+        .firstOrNull { it.isFile && it.canExecute() }
+        ?.absolutePath
+        ?: name
+
 fun canBuildNativeTarget(targetName: String): Boolean = when {
     hostOs.isMacOsX && targetName.startsWith("macos") -> true
     hostOs.isLinux && targetName == "linuxX64" ->
@@ -168,10 +175,10 @@ val ffmpegTargets = buildList {
         listOf(
             "-DCMAKE_SYSTEM_NAME=Linux",
             "-DCMAKE_SYSTEM_PROCESSOR=x86_64",
-            "-DCMAKE_C_COMPILER=x86_64-linux-gnu-gcc",
-            "-DCMAKE_CXX_COMPILER=x86_64-linux-gnu-g++",
-            "-DCMAKE_AR=x86_64-linux-gnu-ar",
-            "-DCMAKE_RANLIB=x86_64-linux-gnu-ranlib",
+            "-DCMAKE_C_COMPILER=${resolveTool("x86_64-linux-gnu-gcc")}",
+            "-DCMAKE_CXX_COMPILER=${resolveTool("x86_64-linux-gnu-g++")}",
+            "-DCMAKE_AR=${resolveTool("x86_64-linux-gnu-ar")}",
+            "-DCMAKE_RANLIB=${resolveTool("x86_64-linux-gnu-ranlib")}",
         )
     }
     add(
@@ -211,10 +218,10 @@ val ffmpegTargets = buildList {
             listOf(
                 "-DCMAKE_SYSTEM_NAME=Linux",
                 "-DCMAKE_SYSTEM_PROCESSOR=aarch64",
-                "-DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc",
-                "-DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++",
-                "-DCMAKE_AR=aarch64-linux-gnu-ar",
-                "-DCMAKE_RANLIB=aarch64-linux-gnu-ranlib",
+                "-DCMAKE_C_COMPILER=${resolveTool("aarch64-linux-gnu-gcc")}",
+                "-DCMAKE_CXX_COMPILER=${resolveTool("aarch64-linux-gnu-g++")}",
+                "-DCMAKE_AR=${resolveTool("aarch64-linux-gnu-ar")}",
+                "-DCMAKE_RANLIB=${resolveTool("aarch64-linux-gnu-ranlib")}",
             )
         }
     add(
@@ -259,9 +266,9 @@ val ffmpegTargets = buildList {
         listOf(
             "-DCMAKE_SYSTEM_NAME=Windows",
             "-DCMAKE_SYSTEM_PROCESSOR=x86_64",
-            "-DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc",
-            "-DCMAKE_AR=x86_64-w64-mingw32-ar",
-            "-DCMAKE_RANLIB=x86_64-w64-mingw32-ranlib",
+            "-DCMAKE_C_COMPILER=${resolveTool("x86_64-w64-mingw32-gcc")}",
+            "-DCMAKE_AR=${resolveTool("x86_64-w64-mingw32-ar")}",
+            "-DCMAKE_RANLIB=${resolveTool("x86_64-w64-mingw32-ranlib")}",
         )
     }
     add(

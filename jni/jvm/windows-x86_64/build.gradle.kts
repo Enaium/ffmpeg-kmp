@@ -31,6 +31,13 @@ fun hasExecutable(name: String): Boolean =
         ?.map { File(it, name) }
         ?.any { it.isFile && it.canExecute() } == true
 
+fun resolveTool(name: String): String =
+    System.getenv("PATH")?.split(File.pathSeparator).orEmpty()
+        .map { File(it, name) }
+        .firstOrNull { it.isFile && it.canExecute() }
+        ?.absolutePath
+        ?: name
+
 val canBuildHere = OperatingSystem.current().isWindows ||
     (OperatingSystem.current().isLinux && hasExecutable("x86_64-w64-mingw32-gcc"))
 
@@ -92,9 +99,9 @@ val configureJniLibrary = tasks.register<Exec>("configureJniLibrary") {
             listOf(
                 "-DCMAKE_SYSTEM_NAME=Windows",
                 "-DCMAKE_SYSTEM_PROCESSOR=x86_64",
-                "-DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc",
-                "-DCMAKE_AR=x86_64-w64-mingw32-ar",
-                "-DCMAKE_RANLIB=x86_64-w64-mingw32-ranlib",
+                "-DCMAKE_C_COMPILER=${resolveTool("x86_64-w64-mingw32-gcc")}",
+                "-DCMAKE_AR=${resolveTool("x86_64-w64-mingw32-ar")}",
+                "-DCMAKE_RANLIB=${resolveTool("x86_64-w64-mingw32-ranlib")}",
             )
         },
     )
