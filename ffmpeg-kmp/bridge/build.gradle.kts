@@ -261,10 +261,13 @@ val ffmpegTargets = buildList {
         }
         add("--enable-indev=dshow")
     }
-    val msysMake = File(msys2Root(), "mingw64/bin/ninja.exe").absolutePath.replace('\\', '/')
+    val msysMake = listOf(
+        File("C:/mingw64/bin/make.exe"),
+        File(msys2Root(), "mingw64/bin/mingw32-make.exe"),
+    ).firstOrNull { it.isFile }?.absolutePath?.replace('\\', '/') ?: "make"
     val mingwCmakeArgs = if (hostOs.isWindows) {
         listOf(
-            "-G", "Ninja",
+            "-G", "MinGW Makefiles",
             "-DCMAKE_C_COMPILER=${windowsTool("gcc")}",
             "-DCMAKE_AR=${windowsTool("ar")}",
             "-DCMAKE_RANLIB=${windowsTool("ranlib")}",
