@@ -31,7 +31,11 @@ fun msys2Root(): String =
     System.getenv("MSYS2_ROOT")?.takeIf { it.isNotBlank() } ?: "C:/msys64"
 
 fun windowsGcc(): String =
-    File(msys2Root(), "mingw64/bin/gcc.exe").absolutePath.replace('\\', '/')
+    File(msys2Root(), "mingw64/bin/x86_64-w64-mingw32-gcc.exe")
+        .absolutePath.replace('\\', '/')
+
+fun windowsTool(name: String): String =
+    File(msys2Root(), "mingw64/bin/$name.exe").absolutePath.replace('\\', '/')
 
 fun msys2Path(): String = listOf(
     File(msys2Root(), "mingw64/bin").absolutePath,
@@ -260,6 +264,8 @@ val ffmpegTargets = buildList {
         listOf(
             "-G", "MinGW Makefiles",
             "-DCMAKE_C_COMPILER=${windowsGcc()}",
+            "-DCMAKE_AR=${windowsTool("x86_64-w64-mingw32-ar")}",
+            "-DCMAKE_RANLIB=${windowsTool("x86_64-w64-mingw32-ranlib")}",
             "-DCMAKE_MAKE_PROGRAM=$msysMake",
         )
     } else {
@@ -353,6 +359,7 @@ ffmpegTargets.forEach { target ->
         description = "Builds FFmpeg static libraries for ${target.targetName}."
         onlyIf { target.canBuild }
         outputs.upToDateWhen { false }
+        outputs.cacheIf { false }
         doFirst {
             buildDir.mkdirs()
             val configure = ffmpegDir.resolve("configure").absolutePath.replace('\\', '/')
@@ -699,6 +706,7 @@ val buildWebWasm = tasks.register<Exec>("buildFFmpegWasm") {
     group = "build"
     description = "Builds the FFmpeg static libraries for WebAssembly."
     onlyIf { canBuildWebWasm }
+    outputs.cacheIf { false }
     dependsOn(configureWebWasm)
     workingDir = ffmpegWasmDir
     configureEmscripten()

@@ -48,7 +48,12 @@ val cmakeBuildDir = layout.buildDirectory.dir("cmake-jni/$classifier")
 val ffmpegBuildDir = rootProject.layout.buildDirectory.dir("ffmpeg/mingwX64")
 val msysRoot = System.getenv("MSYS2_ROOT")?.takeIf { it.isNotBlank() } ?: "C:/msys64"
 val msysMake = File(msysRoot, "usr/bin/make.exe").absolutePath.replace('\\', '/')
-val msysGcc = File(msysRoot, "mingw64/bin/gcc.exe").absolutePath.replace('\\', '/')
+val msysGcc = File(msysRoot, "mingw64/bin/x86_64-w64-mingw32-gcc.exe")
+    .absolutePath.replace('\\', '/')
+val msysAr = File(msysRoot, "mingw64/bin/x86_64-w64-mingw32-ar.exe")
+    .absolutePath.replace('\\', '/')
+val msysRanlib = File(msysRoot, "mingw64/bin/x86_64-w64-mingw32-ranlib.exe")
+    .absolutePath.replace('\\', '/')
 val msysPath = listOf(
     File(msysRoot, "mingw64/bin").absolutePath,
     File(msysRoot, "usr/bin").absolutePath,
@@ -89,14 +94,17 @@ val configureJniLibrary = tasks.register<Exec>("configureJniLibrary") {
             "-DJNI_INCLUDE_DIR_PLATFORM=$platformInclude",
             "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=${outDir.absolutePath}",
             "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=${outDir.absolutePath}",
-            "-G", "MinGW Makefiles",
         ) + if (hostWindows) {
             listOf(
+                "-G", "MinGW Makefiles",
                 "-DCMAKE_C_COMPILER=$msysGcc",
+                "-DCMAKE_AR=$msysAr",
+                "-DCMAKE_RANLIB=$msysRanlib",
                 "-DCMAKE_MAKE_PROGRAM=$msysMake",
             )
         } else {
             listOf(
+                "-G", "Unix Makefiles",
                 "-DCMAKE_SYSTEM_NAME=Windows",
                 "-DCMAKE_SYSTEM_PROCESSOR=x86_64",
                 "-DCMAKE_C_COMPILER=${resolveTool("x86_64-w64-mingw32-gcc")}",
