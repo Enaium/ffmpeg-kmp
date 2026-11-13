@@ -585,8 +585,10 @@ fun Exec.configureEmscripten() {
         environment("EM_CONFIG", file.absolutePath)
     }
     val emscripten = sdk.resolve("upstream/emscripten")
+    val upstreamBin = sdk.resolve("upstream/bin")
     val path = buildString {
-        append(emscripten.absolutePath)
+        append(upstreamBin.absolutePath)
+        append(File.pathSeparator).append(emscripten.absolutePath)
         System.getenv("PATH")?.let { append(File.pathSeparator).append(it) }
     }
     environment("PATH", path)
