@@ -717,7 +717,7 @@ val buildWebWasm = tasks.register<Exec>("buildFFmpegWasm") {
         ffmpegDir.resolve("configure"),
         jniDir.resolve("include/ffmpeg_kmp.h"),
     )
-    outputs.dir(ffmpegWasmDir.resolve("libavcodec"))
+    outputs.file(ffmpegWasmDir.resolve("libavcodec/libavcodec.a"))
     outputs.upToDateWhen { false }
 }
 
