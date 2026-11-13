@@ -27,6 +27,15 @@ val androidNdkHost: String? = rootProject.extra["androidNdkHost"] as String?
 val androidApiLevel = 21
 val makeJobs = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
 
+fun windowsBash(): String {
+    val msysRoot = System.getenv("MSYS2_ROOT")?.takeIf { it.isNotBlank() } ?: "C:/msys64"
+    return listOf(
+        File(msysRoot, "usr/bin/bash.exe"),
+        File("C:/Program Files/Git/bin/bash.exe"),
+        File("C:/Program Files/Git/usr/bin/bash.exe"),
+    ).firstOrNull { it.isFile }?.absolutePath ?: "bash"
+}
+
 // ==================== Target capabilities ====================
 
 fun hasExecutable(name: String): Boolean =
@@ -345,7 +354,7 @@ ffmpegTargets.forEach { target ->
             script.setExecutable(true)
         }
         if (hostOs.isWindows) {
-            commandLine("bash", script.absolutePath.replace('\\', '/'))
+            commandLine(windowsBash(), script.absolutePath.replace('\\', '/'))
         } else {
             commandLine("sh", script.absolutePath)
         }
