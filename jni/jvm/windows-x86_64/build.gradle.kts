@@ -50,9 +50,9 @@ val msysRoot = System.getenv("MSYS2_ROOT")?.takeIf { it.isNotBlank() } ?: "C:/ms
 val msysMake = File(msysRoot, "usr/bin/make.exe").absolutePath.replace('\\', '/')
 val msysGcc = File(msysRoot, "mingw64/bin/x86_64-w64-mingw32-gcc.exe")
     .absolutePath.replace('\\', '/')
-val msysAr = File(msysRoot, "mingw64/bin/x86_64-w64-mingw32-ar.exe")
+val msysAr = File(msysRoot, "mingw64/bin/ar.exe")
     .absolutePath.replace('\\', '/')
-val msysRanlib = File(msysRoot, "mingw64/bin/x86_64-w64-mingw32-ranlib.exe")
+val msysRanlib = File(msysRoot, "mingw64/bin/ranlib.exe")
     .absolutePath.replace('\\', '/')
 val msysPath = listOf(
     File(msysRoot, "mingw64/bin").absolutePath,

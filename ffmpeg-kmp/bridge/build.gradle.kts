@@ -264,8 +264,8 @@ val ffmpegTargets = buildList {
         listOf(
             "-G", "MinGW Makefiles",
             "-DCMAKE_C_COMPILER=${windowsGcc()}",
-            "-DCMAKE_AR=${windowsTool("x86_64-w64-mingw32-ar")}",
-            "-DCMAKE_RANLIB=${windowsTool("x86_64-w64-mingw32-ranlib")}",
+            "-DCMAKE_AR=${windowsTool("ar")}",
+            "-DCMAKE_RANLIB=${windowsTool("ranlib")}",
             "-DCMAKE_MAKE_PROGRAM=$msysMake",
         )
     } else {
