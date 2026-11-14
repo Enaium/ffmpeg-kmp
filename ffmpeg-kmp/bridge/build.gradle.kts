@@ -774,6 +774,58 @@ val linkWebWasm = tasks.register<Exec>("linkFFmpegWasm") {
     outputs.files(jsOutput, wasmOutput)
 }
 
+
+val webAsyncOutputDir = layout.buildDirectory.dir("web-async").get().asFile
+
+val linkWebWasmAsync = tasks.register<Exec>("linkFFmpegWasmAsync") {
+    group = "build"
+    description = "Links the asynchronous Emscripten runtime used by the npm package."
+    onlyIf { canBuildWebWasm }
+    dependsOn(buildWebWasm)
+    val script = webAsyncOutputDir.resolve("link-web-async.sh")
+    val jsOutput = webAsyncOutputDir.resolve("ffmpeg_kmp.js")
+    val wasmOutput = webAsyncOutputDir.resolve("ffmpeg_kmp.wasm")
+    doFirst {
+        webAsyncOutputDir.mkdirs()
+        writeWebExports(webExportsFile)
+        val archives = listOf(
+            "libavdevice/libavdevice.a",
+            "libavfilter/libavfilter.a",
+            "libavformat/libavformat.a",
+            "libavcodec/libavcodec.a",
+            "libswresample/libswresample.a",
+            "libswscale/libswscale.a",
+            "libavutil/libavutil.a",
+        ).joinToString(" ") { "\"${ffmpegWasmDir.resolve(it).absolutePath.replace('\\', '/')}\"" }
+        script.writeText(
+            """
+            #!/bin/sh
+            set -e
+            cd "${ffmpegWasmDir.absolutePath.replace('\\', '/')}"
+            "${emccExecutable.replace('\\', '/')}" -std=c11 -O2 -fPIC -I"${ffmpegDir.absolutePath.replace('\\', '/')}" -I"${ffmpegWasmDir.absolutePath.replace('\\', '/')}" -I"${jniDir.resolve("include").absolutePath.replace('\\', '/')}" -c "${jniDir.resolve("ffmpeg_kmp.c").absolutePath.replace('\\', '/')}" -o "${webAsyncOutputDir.resolve("shim.o").absolutePath.replace('\\', '/')}"
+            "${emccExecutable.replace('\\', '/')}" -O2 -sMODULARIZE=1 -sEXPORT_NAME=createFFmpegModule -sWASM_ASYNC_COMPILATION=1 -sINCOMING_MODULE_JS_API=wasmBinary -sSINGLE_FILE=0 -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=67108864 -sSTACK_SIZE=8388608 -sFILESYSTEM=1 -sFORCE_FILESYSTEM=1 -sEXPORTED_FUNCTIONS=@"${webExportsFile.absolutePath.replace('\\', '/')}" -sEXPORTED_RUNTIME_METHODS=HEAPU8,FS --no-entry -Wl,--start-group $archives -Wl,--end-group "${webAsyncOutputDir.resolve("shim.o").absolutePath.replace('\\', '/')}" -o "${jsOutput.absolutePath.replace('\\', '/')}"
+            """.trimIndent() + "\n",
+        )
+        script.setExecutable(true)
+    }
+    commandLine("sh", script.absolutePath)
+    inputs.files(
+        jniDir.resolve("ffmpeg_kmp.c"),
+        jniDir.resolve("include/ffmpeg_kmp.h"),
+        jniDir.resolve("CMakeLists.txt"),
+    )
+    inputs.files(
+        ffmpegWasmDir.resolve("libavdevice/libavdevice.a"),
+        ffmpegWasmDir.resolve("libavfilter/libavfilter.a"),
+        ffmpegWasmDir.resolve("libavformat/libavformat.a"),
+        ffmpegWasmDir.resolve("libavcodec/libavcodec.a"),
+        ffmpegWasmDir.resolve("libswresample/libswresample.a"),
+        ffmpegWasmDir.resolve("libswscale/libswscale.a"),
+        ffmpegWasmDir.resolve("libavutil/libavutil.a"),
+    )
+    outputs.files(jsOutput, wasmOutput)
+}
+
 val generateWebWasmData = tasks.register<DefaultTask>("generateWebWasmData") {
     group = "build"
     description = "Embeds the Emscripten runtime and wasm module into Kotlin sources."

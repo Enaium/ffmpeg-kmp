@@ -59,7 +59,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.min
 import kotlin.time.TimeSource
@@ -73,11 +72,16 @@ import kotlin.time.TimeSource
  */
 object CameraFFmpegDemo {
 
-    fun run(options: DemoOptions, uiScale: Float = 1f) {
+    /** Host-owned frame loop used by the browser target. */
+    fun interface FrameDriver {
+        fun drive(step: () -> Boolean, done: () -> Unit)
+    }
+
+    fun run(options: DemoOptions, uiScale: Float = 1f, driver: FrameDriver? = null) {
         if (options.headless) {
             runHeadless(options)
         } else {
-            runWindowed(options, uiScale)
+            runWindowed(options, uiScale, driver)
         }
     }
 
@@ -95,7 +99,7 @@ object CameraFFmpegDemo {
         var recordingPath: String? = null
 
         try {
-            runBlocking {
+            runBlockingDemo {
                 var usingCamera = false
                 if (options.source == SourceKind.CAMERA) {
                     usingCamera = camera.start(
@@ -112,9 +116,10 @@ object CameraFFmpegDemo {
                         } else {
                             sourceName = camera.cameraName ?: "camera"
                             input++
-                            lastOutput = pipeline.process(first, pipelineSettings(options))
-                            recordingPath = lastOutput.recordingPath ?: recordingPath
-                            if (lastOutput.filtered != null) decoded++
+                            val output = pipeline.process(first, pipelineSettings(options))
+                            lastOutput = output
+                            recordingPath = output.recordingPath ?: recordingPath
+                            if (output.filtered != null) decoded++
                         }
                     }
                 }
@@ -170,7 +175,7 @@ object CameraFFmpegDemo {
         val container: RecordingFormat,
     )
 
-    private fun runWindowed(options: DemoOptions, uiScale: Float) {
+    private fun runWindowed(options: DemoOptions, uiScale: Float, driver: FrameDriver?) {
         SDL.setMainReady()
         if (!SDL.init(SDLInitFlags.VIDEO or SDLInitFlags.EVENTS)) {
             SDL.setHint("SDL_VIDEO_DRIVER", "dummy")
@@ -232,6 +237,112 @@ object CameraFFmpegDemo {
         var rendered = 0
         val limit = if (options.frames <= 0) Int.MAX_VALUE else options.frames
         val interfaceScale = maxOf(uiScale, 0.5f)
+        var finished = false
+
+        fun finish() {
+            if (finished) return
+            finished = true
+            scope.cancel()
+            sessionJob?.cancel()
+            left?.close()
+            right?.close()
+            imguiRenderer.close()
+            ImGui.destroyContext(imguiContext)
+            renderer.close()
+            window.close()
+            SDL.quit()
+        }
+
+        fun renderFrame(): Boolean {
+            if (!running || rendered >= limit) return false
+            if (options.quitAfterMillis > 0 &&
+                windowStarted.elapsedNow().inWholeMilliseconds >= options.quitAfterMillis
+            ) {
+                running = false
+                return false
+            }
+            while (true) {
+                val event = SDL.pollEvent() ?: break
+                when (event) {
+                    is SDLEvent.Quit -> running = false
+                    is SDLEvent.Window -> {
+                        if (event.type == SDLWindowEventType.CLOSE_REQUESTED) {
+                            running = false
+                        } else {
+                            imgui.processEvent(event)
+                        }
+                    }
+
+                    is SDLEvent.TouchFinger -> {
+                        val size = window.size
+                        val x = event.x * size.x
+                        val y = event.y * size.y
+                        when (event.type) {
+                            SDLEventType.FINGER_DOWN -> {
+                                imgui.processEvent(SDLEvent.MouseMotion(event.timestamp, 0, x, y, 0f, 0f))
+                                imgui.processEvent(SDLEvent.MouseButton(event.timestamp, 0, true, 1, 1, x, y))
+                            }
+
+                            SDLEventType.FINGER_MOTION ->
+                                imgui.processEvent(SDLEvent.MouseMotion(event.timestamp, 0, x, y, 0f, 0f))
+
+                            SDLEventType.FINGER_UP -> {
+                                imgui.processEvent(SDLEvent.MouseMotion(event.timestamp, 0, x, y, 0f, 0f))
+                                imgui.processEvent(SDLEvent.MouseButton(event.timestamp, 0, false, 1, 1, x, y))
+                            }
+
+                            else -> Unit
+                        }
+                    }
+
+                    else -> imgui.processEvent(event)
+                }
+            }
+
+            direct.value?.let { frame ->
+                val panel = left?.takeIf { it.matches(frame) } ?: Panel(renderer, imguiRenderer, frame).also {
+                    left?.close()
+                    left = it
+                }
+                panel.update(frame)
+            }
+            processed.value?.let { frame ->
+                val panel = right?.takeIf { it.matches(frame) } ?: Panel(renderer, imguiRenderer, frame).also {
+                    right?.close()
+                    right = it
+                }
+                panel.update(frame)
+            }
+
+            imgui.newFrame()
+            drawUi(
+                ui,
+                settings,
+                recording,
+                container,
+                left,
+                right,
+                stats.value,
+                errorText.value,
+                recordingPath.value,
+                interfaceScale,
+            )
+            ImGui.render()
+
+            renderer.drawColor = SDLColor(18, 18, 24, 255)
+            renderer.clear()
+            imguiRenderer.renderDrawData(ImGui.getDrawData())
+            renderer.present()
+
+            rendered++
+            if (rendered % 120 == 0) {
+                println("rendered $rendered frames, ${stats.value}")
+            }
+            if (driver == null) {
+                SDL.delay((1000 / settings.value.frameRate).coerceAtLeast(1))
+            }
+            return running && rendered < limit
+        }
 
         try {
             imgui.init()
@@ -270,103 +381,17 @@ object CameraFFmpegDemo {
                 }
             }
 
-            while (running && rendered < limit) {
-                if (options.quitAfterMillis > 0 &&
-                    windowStarted.elapsedNow().inWholeMilliseconds >= options.quitAfterMillis
-                ) {
-                    running = false
-                    continue
+            if (driver != null) {
+                driver.drive(::renderFrame, ::finish)
+            } else {
+                while (renderFrame()) {
                 }
-                while (true) {
-                    val event = SDL.pollEvent() ?: break
-                    when (event) {
-                        is SDLEvent.Quit -> running = false
-                        is SDLEvent.Window -> {
-                            if (event.type == SDLWindowEventType.CLOSE_REQUESTED) {
-                                running = false
-                            } else {
-                                imgui.processEvent(event)
-                            }
-                        }
-
-                        is SDLEvent.TouchFinger -> {
-                            val size = window.size
-                            val x = event.x * size.x
-                            val y = event.y * size.y
-                            when (event.type) {
-                                SDLEventType.FINGER_DOWN -> {
-                                    imgui.processEvent(SDLEvent.MouseMotion(event.timestamp, 0, x, y, 0f, 0f))
-                                    imgui.processEvent(SDLEvent.MouseButton(event.timestamp, 0, true, 1, 1, x, y))
-                                }
-
-                                SDLEventType.FINGER_MOTION ->
-                                    imgui.processEvent(SDLEvent.MouseMotion(event.timestamp, 0, x, y, 0f, 0f))
-
-                                SDLEventType.FINGER_UP -> {
-                                    imgui.processEvent(SDLEvent.MouseMotion(event.timestamp, 0, x, y, 0f, 0f))
-                                    imgui.processEvent(SDLEvent.MouseButton(event.timestamp, 0, false, 1, 1, x, y))
-                                }
-
-                                else -> Unit
-                            }
-                        }
-
-                        else -> imgui.processEvent(event)
-                    }
-                }
-
-                direct.value?.let { frame ->
-                    val panel = left?.takeIf { it.matches(frame) } ?: Panel(renderer, imguiRenderer, frame).also {
-                        left?.close()
-                        left = it
-                    }
-                    panel.update(frame)
-                }
-                processed.value?.let { frame ->
-                    val panel = right?.takeIf { it.matches(frame) } ?: Panel(renderer, imguiRenderer, frame).also {
-                        right?.close()
-                        right = it
-                    }
-                    panel.update(frame)
-                }
-
-                imgui.newFrame()
-                drawUi(
-                    ui,
-                    settings,
-                    recording,
-                    container,
-                    left,
-                    right,
-                    stats.value,
-                    errorText.value,
-                    recordingPath.value,
-                    interfaceScale,
-                )
-                ImGui.render()
-
-                renderer.drawColor = SDLColor(18, 18, 24, 255)
-                renderer.clear()
-                imguiRenderer.renderDrawData(ImGui.getDrawData())
-                renderer.present()
-
-                rendered++
-                if (rendered % 120 == 0) {
-                    println("rendered $rendered frames, ${stats.value}")
-                }
-                SDL.delay((1000 / settings.value.frameRate).coerceAtLeast(1))
+                finish()
+                println("stopped after $rendered rendered frames, ${stats.value}")
             }
-            println("stopped after $rendered rendered frames, ${stats.value}")
-        } finally {
-            scope.cancel()
-            runBlocking { sessionJob?.join() }
-            left?.close()
-            right?.close()
-            imguiRenderer.close()
-            ImGui.destroyContext(imguiContext)
-            renderer.close()
-            window.close()
-            SDL.quit()
+        } catch (t: Throwable) {
+            finish()
+            throw t
         }
     }
 

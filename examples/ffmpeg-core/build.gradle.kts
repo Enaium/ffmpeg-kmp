@@ -31,6 +31,10 @@ kotlin {
     }
     mingwX64()
 
+    wasmJs {
+        nodejs()
+    }
+
     androidNativeArm64()
     androidNativeArm32()
     androidNativeX64()

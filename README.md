@@ -262,6 +262,7 @@ The example is a Kotlin Multiplatform camera application, structured like
 | `examples:ffmpeg-core` | camera-kmp capture, test pattern, `swscale` scale + RGBA conversion, `avfilter` graph, `avcodec` encode/decode, `avformat` MP4 recording |
 | `examples:camera-ffmpeg` | SDL3 + ImGui window for JVM, Kotlin/Native desktop and Android Native, with live camera/filtered views and controls |
 | `examples:camera-ffmpeg:android` | Android `SDLActivity` app that packages `libmain.so` for all four ABIs |
+| `examples:browser` | Kotlin/Wasm browser app using the same SDL3 + ImGui UI, synthetic pattern by default, FFmpeg loaded through the async npm runtime |
 
 The runtime pipeline is:
 
@@ -277,7 +278,10 @@ camera-kmp I420 frame
 ```
 
 The UI exposes resolution, camera/test-pattern source, filter, scale, bitrate,
-a record checkbox and a container/muxer selector. The example only offers filters that exist in an LGPL
+a record checkbox and a container/muxer selector. The browser build starts with
+the synthetic pattern and loads FFmpeg through the async npm runtime before the
+Kotlin/Wasm module starts; camera capture remains selectable when the page is
+served over HTTPS/localhost. The example only offers filters that exist in an LGPL
 build (`hflip`, `vflip`, `negate`, `gblur`, `hue`, `edgedetect`); GPL-only
 filters such as `boxblur` and `eq` are not compiled because FFmpeg is built
 without `--enable-gpl`. Recording files are written under the process working
@@ -295,6 +299,12 @@ Android.
 
 # Android APK (SDLActivity + native libmain.so)
 ./gradlew :examples:camera-ffmpeg:android:assembleDebug
+
+# Browser app (SDL3 + ImGui rendered into a canvas)
+./gradlew :examples:browser:wasmJsBrowserDevelopmentRun
+# production files:
+./gradlew :examples:browser:wasmJsBrowserDistribution
+python3 -m http.server 8080 --directory examples/browser/build/dist/wasmJs/productionExecutable
 ```
 
 The JVM target requires JDK 22 or newer because `camera-kmp`'s desktop backend uses the
@@ -310,6 +320,7 @@ git submodule update --init --recursive
 ./gradlew jvmTest macosArm64Test
 ./gradlew jsNodeTest wasmJsNodeTest   # needs Emscripten
 ./gradlew :ffmpeg-kmp:assembleWasmNpm # stages the npm package
+./gradlew :examples:browser:wasmJsBrowserDistribution # browser UI
 ```
 
 The FFmpeg build runs `configure` and `make` for the requested target under

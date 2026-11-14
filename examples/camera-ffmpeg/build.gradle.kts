@@ -37,6 +37,10 @@ kotlin {
         }
     }
 
+    wasmJs {
+        browser()
+    }
+
     macosArm64 { binaries.executable() }
     macosX64 { binaries.executable() }
 

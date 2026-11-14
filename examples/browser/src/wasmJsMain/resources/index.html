@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="data:,">
+    <title>ffmpeg-kmp browser demo</title>
+    <style>
+        html, body { margin: 0; height: 100%; background: #12121a; overflow: hidden; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+<canvas id="canvas" width="1280" height="800"></canvas>
+<pre id="error" style="position:fixed;left:12px;top:12px;margin:0;color:#ff8080;font:13px/1.4 monospace;white-space:pre-wrap;max-width:90vw"></pre>
+<script>
+    const errorBox = document.getElementById('error');
+    function report(message) { errorBox.textContent = String(message); }
+    window.addEventListener('error', (event) => report(event.message + ' @ ' + event.filename + ':' + event.lineno));
+    window.addEventListener('unhandledrejection', (event) => report(event.reason));
+</script>
+<script type="module">
+    import { initFFmpegKmp } from './ffmpeg_kmp_glue.js';
+    import { initSdlKmp } from './sdl_kmp_glue.js';
+    import { initImguiKmp } from './imgui_kmp_glue.js';
+
+    const canvas = document.getElementById('canvas');
+    canvas.addEventListener('contextmenu', (event) => event.preventDefault());
+    canvas.addEventListener('auxclick', (event) => {
+        if (event.button === 1) event.preventDefault();
+    });
+
+    report('initializing FFmpeg...');
+    await initFFmpegKmp();
+    report('initializing SDL...');
+    await initSdlKmp({ canvas });
+    report('initializing ImGui...');
+    await initImguiKmp();
+    await import('./browser-demo.js');
+    report('');
+</script>
+</body>
+</html>

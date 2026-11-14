@@ -5,8 +5,8 @@ junit = "6.1.3"
 junit-platform = "6.1.3"
 maven-publish = "0.37.0"
 camera = "1.0.0"
-sdl-kmp = "3.4.18.1"
-imgui-kmp = "1.93.0.1"
+sdl-kmp = "3.4.18.2"
+imgui-kmp = "1.93.0.2"
 coroutines = "1.11.0"
 
 [plugins]
@@ -24,3 +24,4 @@ camera-kmp = { module = "cn.enaium.camera:camera-kmp", version.ref = "camera" }
 sdl-kmp = { module = "cn.enaium.sdl:sdl-kmp", version.ref = "sdl-kmp" }
 imgui-kmp = { module = "cn.enaium.imgui:imgui-kmp", version.ref = "imgui-kmp" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version = "0.5.0" }

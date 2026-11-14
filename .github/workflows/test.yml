@@ -44,6 +44,7 @@ jobs:
           TASKS="$TASKS :ffmpeg-kmp:jsNodeTest :ffmpeg-kmp:wasmJsNodeTest"
           TASKS="$TASKS :ffmpeg-kmp:bridge:jsNodeTest :ffmpeg-kmp:bridge:wasmJsNodeTest"
           TASKS="$TASKS :examples:ffmpeg-core:jvmTest :examples:ffmpeg-core:macosArm64Test"
+          TASKS="$TASKS :examples:browser:wasmJsBrowserDistribution"
           for module in $MODULES; do
             TASKS="$TASKS :$module:jvmTest :$module:macosArm64Test :$module:linkDebugTestMacosX64"
             TASKS="$TASKS :$module:jsNodeTest :$module:wasmJsNodeTest"
