@@ -27,7 +27,6 @@ include(":ffmpeg-kmp:bridge")
 
 include(":examples:ffmpeg-core")
 include(":examples:camera-ffmpeg")
-include(":examples:browser")
 include(":examples:camera-ffmpeg:android")
 
 // Per-OS/arch JNI artifacts that ship the prebuilt libffmpeg_jni shared library

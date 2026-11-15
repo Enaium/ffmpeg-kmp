@@ -260,9 +260,8 @@ The example is a Kotlin Multiplatform camera application, structured like
 | Module | What it does |
 |---|---|
 | `examples:ffmpeg-core` | camera-kmp capture, test pattern, `swscale` scale + RGBA conversion, `avfilter` graph, `avcodec` encode/decode, `avformat` MP4 recording |
-| `examples:camera-ffmpeg` | SDL3 + ImGui window for JVM, Kotlin/Native desktop and Android Native, with live camera/filtered views and controls |
+| `examples:camera-ffmpeg` | SDL3 + ImGui window for JVM, Kotlin/Native desktop, Android Native and Kotlin/Wasm browser, with live camera/filtered views and controls |
 | `examples:camera-ffmpeg:android` | Android `SDLActivity` app that packages `libmain.so` for all four ABIs |
-| `examples:browser` | Kotlin/Wasm browser app using the same SDL3 + ImGui UI, synthetic pattern by default, FFmpeg loaded through the async npm runtime |
 
 The runtime pipeline is:
 
@@ -301,10 +300,10 @@ Android.
 ./gradlew :examples:camera-ffmpeg:android:assembleDebug
 
 # Browser app (SDL3 + ImGui rendered into a canvas)
-./gradlew :examples:browser:wasmJsBrowserDevelopmentRun
+./gradlew :examples:camera-ffmpeg:wasmJsBrowserDevelopmentRun
 # production files:
-./gradlew :examples:browser:wasmJsBrowserDistribution
-python3 -m http.server 8080 --directory examples/browser/build/dist/wasmJs/productionExecutable
+./gradlew :examples:camera-ffmpeg:wasmJsBrowserDistribution
+python3 -m http.server 8080 --directory examples/camera-ffmpeg/build/dist/wasmJs/productionExecutable
 ```
 
 The JVM target requires JDK 22 or newer because `camera-kmp`'s desktop backend uses the
@@ -320,12 +319,14 @@ git submodule update --init --recursive
 ./gradlew jvmTest macosArm64Test
 ./gradlew jsNodeTest wasmJsNodeTest   # needs Emscripten
 ./gradlew :ffmpeg-kmp:assembleWasmNpm # stages the npm package
-./gradlew :examples:browser:wasmJsBrowserDistribution # browser UI
+./gradlew :examples:camera-ffmpeg:wasmJsBrowserDistribution # browser UI
 ```
 
-The FFmpeg build runs `configure` and `make` for the requested target under
-`build/ffmpeg/<target>`; the C shim and JNI library are built by CMake under the
-JNI artifact's build directory. Flags used for every target:
+The WebAssembly build auto-detects a Python 3.10+ interpreter and passes it to
+Emscripten as `EMSDK_PYTHON`; set that variable explicitly when several Python
+installations are present. The FFmpeg build runs `configure` and `make` for the
+requested target under `build/ffmpeg/<target>`; the C shim and JNI library are
+built by CMake under the JNI artifact's build directory. Flags used for every target:
 
 ```
 --disable-programs --disable-doc --disable-debug

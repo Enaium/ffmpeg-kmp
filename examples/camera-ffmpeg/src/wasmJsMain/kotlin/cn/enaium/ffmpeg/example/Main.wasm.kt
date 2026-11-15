@@ -7,9 +7,8 @@
  * version 2.1 of the License, or (at your option) any later version.
  */
 
-package cn.enaium.ffmpeg.example.browser
+package cn.enaium.ffmpeg.example
 
-import cn.enaium.ffmpeg.example.CameraFFmpegDemo
 import cn.enaium.ffmpeg.example.core.DemoOptions
 import cn.enaium.ffmpeg.example.core.SourceKind
 import kotlinx.browser.window
@@ -24,7 +23,10 @@ import kotlinx.browser.window
  */
 fun main() {
     val options = DemoOptions(
-        source = SourceKind.SYNTHETIC,
+        // The page can start on the camera: ?source=camera. The picker in the
+        // window switches at runtime either way.
+        source = window.location.search.toSourceParameter()?.let(SourceKind::parse)
+            ?: SourceKind.SYNTHETIC,
         width = 640,
         height = 480,
         frameRate = 30,
@@ -43,3 +45,7 @@ fun main() {
         },
     )
 }
+
+/** `?source=camera` (or `synthetic`); absent keeps the default source. */
+private fun String.toSourceParameter(): String? =
+    substringAfter("source=", "").substringBefore('&').trim().ifBlank { null }

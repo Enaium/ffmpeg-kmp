@@ -1,3 +1,5 @@
+@file:OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
+
 import java.io.File
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
@@ -38,7 +40,12 @@ kotlin {
     }
 
     wasmJs {
-        browser()
+        binaries.executable()
+        browser {
+            commonWebpackConfig {
+                outputFileName = "camera-ffmpeg.js"
+            }
+        }
     }
 
     macosArm64 { binaries.executable() }
@@ -99,11 +106,50 @@ kotlin {
                 implementation(libs.kotlinx.coroutines.core)
             }
         }
+        getByName("wasmJsMain") {
+            dependencies {
+                implementation(libs.kotlinx.browser)
+                implementation(npm("@enaium/sdl-kmp", "3.4.18-2"))
+                implementation(npm("@enaium/imgui-kmp", "1.93.0-2"))
+                // getUserMedia glue for camera-kmp's browser backend; the page
+                // loads it before the Kotlin module (see index.html).
+                implementation(npm("@enaium/camera-kmp", libs.versions.camera.get()))
+            }
+        }
     }
 }
 
-// SDL must create its window on the first thread on macOS. The example is a
-// desktop app, so this only affects the Gradle-run JVM entry point.
+
+// The Emscripten SDL/ImGui runtimes and camera-kmp's getUserMedia glue are
+// shipped as npm packages. Copy their files next to the Kotlin/Wasm output so
+// the static page can initialize SDL/ImGui and install the camera globals
+// before importing the camera bundle.
+val copiedWasmAssets = layout.buildDirectory.dir("generated/wasmAssets")
+val wasmNodeModules = rootProject.layout.buildDirectory.dir("wasm/node_modules")
+
+val copyWasmAssets = tasks.register<Copy>("copyWasmAssets") {
+    dependsOn(":kotlinWasmNpmInstall")
+    dependsOn(":ffmpeg-kmp:assembleWasmNpm")
+    from(wasmNodeModules.map { it.dir("@enaium/sdl-kmp") }) {
+        include("sdl_kmp_glue.js", "sdl_wasm.js", "sdl_wasm.wasm")
+    }
+    from(wasmNodeModules.map { it.dir("@enaium/imgui-kmp") }) {
+        include("imgui_kmp_glue.js", "imgui_kmp_exports.js", "imgui_wasm.js", "imgui_wasm.wasm")
+    }
+    from(rootProject.file("ffmpeg-kmp/build/npm")) {
+        include("ffmpeg_kmp_glue.js", "ffmpeg_kmp.js", "ffmpeg_kmp.wasm")
+    }
+    from(wasmNodeModules.map { it.dir("@enaium/camera-kmp") }) {
+        include("camera-kmp-web.js")
+    }
+    into(copiedWasmAssets)
+}
+
+tasks.named<Copy>("wasmJsProcessResources") {
+    dependsOn(copyWasmAssets)
+    from(copiedWasmAssets)
+}
+
 tasks.withType<JavaExec>().configureEach {
     if (name == "jvmRun") {
         jvmArgs("--enable-native-access=ALL-UNNAMED")

@@ -61,6 +61,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.min
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
 /**
@@ -607,19 +608,32 @@ object CameraFFmpegDemo {
             }
             if (!cameraOpen) {
                 startSynthetic()
-            } else {
-                launch {
-                    delay(2_500)
-                    if (direct.value == null) {
-                        println("camera produced no frame within 2.5 s; falling back to the test pattern")
-                        camera.close()
-                        startSynthetic()
-                    }
-                }
             }
 
+            // A browser camera delivers nothing until the user answers the
+            // permission prompt, so the fallback watches the reported error and
+            // a generous deadline instead of a short timer: a 2.5 s cut-off
+            // dropped cameras the user was about to allow and left the test
+            // pattern running.
+            val cameraOpenedAt = TimeSource.Monotonic.markNow()
+
             while (isActive) {
-                val frame = withTimeoutOrNull(500) { channel.receive() } ?: continue
+                val frame = withTimeoutOrNull(500) { channel.receive() }
+                if (frame == null) {
+                    if (cameraOpen && direct.value == null) {
+                        val failure = errorText.value
+                        if (failure != null || cameraOpenedAt.elapsedNow() > 20.seconds) {
+                            println(
+                                "camera gave no usable picture (${failure ?: "no frame after 20 s"}); " +
+                                    "falling back to the test pattern",
+                            )
+                            cameraOpen = false
+                            camera.close()
+                            startSynthetic()
+                        }
+                    }
+                    continue
+                }
                 val output = pipeline.process(
                     frame,
                     PipelineSettings(

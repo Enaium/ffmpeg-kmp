@@ -4,6 +4,7 @@
 import java.io.File
 import java.util.Base64
 import java.util.Properties
+import java.util.concurrent.TimeUnit
 import org.gradle.api.tasks.testing.Test
 import org.gradle.internal.os.OperatingSystem
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -626,11 +627,66 @@ fun resolveEmscripten(command: String): String {
     return command
 }
 
+fun pythonVersion(file: File): Int? = try {
+    val process = ProcessBuilder(file.absolutePath, "--version")
+        .redirectErrorStream(true)
+        .start()
+    val output = process.inputStream.bufferedReader().use { it.readText() }
+    if (!process.waitFor(5, TimeUnit.SECONDS)) {
+        process.destroyForcibly()
+        null
+    } else {
+        Regex("Python\\s+(\\d+)\\.(\\d+)").find(output)?.let { match ->
+            match.groupValues[1].toInt() * 100 + match.groupValues[2].toInt()
+        }
+    }
+} catch (_: Exception) {
+    null
+}
+
+/**
+ * Emscripten's Python tools use the `match` statement, so Python 3.10 or newer
+ * is required. macOS still ships Python 3.9 as /usr/bin/python3, which is ahead
+ * of Homebrew's interpreter on the default PATH; passing EMSDK_PYTHON to
+ * emconfigure/emcc avoids the cryptic SyntaxError.
+ */
+fun resolveEmscriptenPython(): File? {
+    val candidates = linkedSetOf<File>()
+    System.getenv("EMSDK_PYTHON")?.takeIf { it.isNotBlank() }?.let { candidates.add(File(it)) }
+    val pathDirs = System.getenv("PATH")?.split(File.pathSeparator).orEmpty().filter { it.isNotBlank() }
+    listOf(
+        "python3.15", "python3.14", "python3.13", "python3.12", "python3.11", "python3.10",
+        "python3", "python",
+    ).forEach { name ->
+        pathDirs.forEach { dir -> candidates.add(File(dir, name)) }
+    }
+    resolveEmsdk()?.resolve("python")?.listFiles { it.isDirectory }?.forEach { dir ->
+        candidates.add(dir.resolve("bin/python3"))
+        candidates.add(dir.resolve("bin/python.exe"))
+        candidates.add(dir.resolve("python.exe"))
+    }
+    if (hostOs.isMacOsX) {
+        candidates.add(File("/opt/homebrew/bin/python3"))
+        candidates.add(File("/usr/local/bin/python3"))
+    }
+    return candidates.firstOrNull { it.isFile && it.canExecute() && (pythonVersion(it) ?: 0) >= 310 }
+}
+
+val emscriptenPython: File? by lazy(LazyThreadSafetyMode.NONE) { resolveEmscriptenPython() }
+
 fun Exec.configureEmscripten() {
     val sdk = resolveEmsdk() ?: return
     environment("EMSDK", sdk.absolutePath)
     sdk.resolve(".emscripten").takeIf { it.isFile }?.let { file ->
         environment("EM_CONFIG", file.absolutePath)
+    }
+    emscriptenPython?.let { python ->
+        environment("EMSDK_PYTHON", python.absolutePath)
+        logger.info("Using Emscripten Python: ${python.absolutePath}")
+    } ?: doFirst {
+        throw GradleException(
+            "Emscripten requires Python 3.10 or newer; set EMSDK_PYTHON to a compatible interpreter.",
+        )
     }
     val emscripten = sdk.resolve("upstream/emscripten")
     val upstreamBin = sdk.resolve("upstream/bin")

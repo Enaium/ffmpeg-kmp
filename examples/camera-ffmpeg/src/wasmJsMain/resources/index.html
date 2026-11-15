@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="data:,">
-    <title>ffmpeg-kmp browser demo</title>
+    <title>ffmpeg-kmp camera</title>
     <style>
         html, body { margin: 0; height: 100%; background: #12121a; overflow: hidden; }
         canvas { display: block; width: 100vw; height: 100vh; }
@@ -13,6 +13,9 @@
 <body>
 <canvas id="canvas" width="1280" height="800"></canvas>
 <pre id="error" style="position:fixed;left:12px;top:12px;margin:0;color:#ff8080;font:13px/1.4 monospace;white-space:pre-wrap;max-width:90vw"></pre>
+<!-- camera-kmp's getUserMedia glue installs the cameraKmp_* globals the Kotlin
+     backend calls; it must run before the Kotlin/Wasm module is imported. -->
+<script src="camera-kmp-web.js"></script>
 <script>
     const errorBox = document.getElementById('error');
     function report(message) { errorBox.textContent = String(message); }
@@ -36,7 +39,7 @@
     await initSdlKmp({ canvas });
     report('initializing ImGui...');
     await initImguiKmp();
-    await import('./browser-demo.js');
+    await import('./camera-ffmpeg.js');
     report('');
 </script>
 </body>
