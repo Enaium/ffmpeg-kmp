@@ -71,11 +71,31 @@ jobs:
           ./gradlew --no-daemon --stacktrace
           :examples:camera-ffmpeg:runDebugExecutableMacosArm64
 
-      - name: Stage and smoke-test the @enaium/ffmpeg-kmp npm package
+      - name: Stage and smoke-test the FFmpeg npm packages
         run: |
           ./gradlew --no-daemon --stacktrace :ffmpeg-kmp:assembleWasmNpm
-          node --check ffmpeg-kmp/build/npm/ffmpeg_kmp_glue.js
-          node -e "import('file://' + process.cwd() + '/ffmpeg-kmp/build/npm/ffmpeg_kmp_glue.js').then(async (m) => { const api = await m.initFFmpegKmp(); const p = api.callInt('fk_version_info',0,0,0,0,0,0,0); const version = api.readString(p); if (!version) throw new Error('@enaium/ffmpeg-kmp failed to initialize'); console.log('npm package version=' + version); })"
+          node --input-type=commonjs <<'EOF'
+          (async () => {
+            const packages = [
+              ['libavutil-kmp', 'initLibavutilKmp'],
+              ['libavcodec-kmp', 'initLibavcodecKmp'],
+              ['libavformat-kmp', 'initLibavformatKmp'],
+              ['libavfilter-kmp', 'initLibavfilterKmp'],
+              ['libswscale-kmp', 'initLibswscaleKmp'],
+              ['libswresample-kmp', 'initLibswresampleKmp'],
+              ['libavdevice-kmp', 'initLibavdeviceKmp'],
+              ['ffmpeg-kmp', 'initFFmpegKmp'],
+            ];
+            for (const [name, init] of packages) {
+              const file = 'file://' + process.cwd() + '/ffmpeg-kmp/build/npm/' + name + '/ffmpeg_kmp_glue.js';
+              const module = await import(file);
+              const api = await module[init]();
+              const version = api.readString(api.callInt('fk_version_info', 0, 0, 0, 0, 0, 0, 0));
+              if (!version) throw new Error('@enaium/' + name + ' failed to initialize');
+              console.log('@enaium/' + name + ' version=' + version);
+            }
+          })().catch((error) => { console.error(error); process.exit(1); });
+          EOF
 
       - name: Decode signing key
         run: |

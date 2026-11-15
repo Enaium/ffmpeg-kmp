@@ -136,7 +136,7 @@ val copyWasmAssets = tasks.register<Copy>("copyWasmAssets") {
     from(wasmNodeModules.map { it.dir("@enaium/imgui-kmp") }) {
         include("imgui_kmp_glue.js", "imgui_kmp_exports.js", "imgui_wasm.js", "imgui_wasm.wasm")
     }
-    from(rootProject.file("ffmpeg-kmp/build/npm")) {
+    from(rootProject.file("ffmpeg-kmp/build/npm/ffmpeg-kmp")) {
         include("ffmpeg_kmp_glue.js", "ffmpeg_kmp.js", "ffmpeg_kmp.wasm")
     }
     from(wasmNodeModules.map { it.dir("@enaium/camera-kmp") }) {

@@ -707,10 +707,37 @@ val ffmpegWasmDir = rootProject.layout.buildDirectory.dir("ffmpeg/wasm").get().a
 val webOutputDir = layout.buildDirectory.dir("web").get().asFile
 val webExportsFile = webOutputDir.resolve("exports.txt")
 
-fun writeWebExports(file: File) {
+val webLibraries = linkedMapOf(
+    "libavutil" to "libavutil",
+    "libavcodec" to "libavcodec",
+    "libavformat" to "libavformat",
+    "libavfilter" to "libavfilter",
+    "libswscale" to "libswscale",
+    "libswresample" to "libswresample",
+    "libavdevice" to "libavdevice",
+)
+
+/**
+ * Collects `fk_*` declarations from the C ABI header. The file is grouped by
+ * library, so each npm package can export its own section plus the shared
+ * version/error helpers instead of shipping every library's C API.
+ */
+fun writeWebExports(file: File, sections: Set<String>? = null) {
     val regex = Regex("fk_[a-z0-9_]+\\(")
+    val sectionRegex = Regex("""^/\*\s*=+\s*(.*?)\s*=+\s*\*/""")
+    var currentSection = ""
     val functions = jniDir.resolve("include/ffmpeg_kmp.h").readLines()
-        .flatMap { line -> regex.findAll(line).map { match -> "_" + match.value.dropLast(1) } }
+        .flatMap { line ->
+            sectionRegex.find(line.trim())?.let { currentSection = it.groupValues[1].trim() }
+            val include = sections == null ||
+                currentSection == "Versions and build information" ||
+                currentSection in sections
+            if (include) {
+                regex.findAll(line).map { match -> "_" + match.value.dropLast(1) }
+            } else {
+                emptySequence()
+            }
+        }
         .distinct()
         .sorted()
     file.writeText((functions + listOf("_malloc", "_free")).joinToString("\n") + "\n")
@@ -880,6 +907,61 @@ val linkWebWasmAsync = tasks.register<Exec>("linkFFmpegWasmAsync") {
         ffmpegWasmDir.resolve("libavutil/libavutil.a"),
     )
     outputs.files(jsOutput, wasmOutput)
+}
+
+val webLibraryLinks = webLibraries.map { (library, section) ->
+    val suffix = library.replaceFirstChar { it.uppercase() }
+    val outputDir = layout.buildDirectory.dir("web-libs/$library").get().asFile
+    val script = outputDir.resolve("link-web.sh")
+    val jsOutput = outputDir.resolve("ffmpeg_kmp.js")
+    val wasmOutput = outputDir.resolve("ffmpeg_kmp.wasm")
+    val exportsFile = outputDir.resolve("exports.txt")
+    val factoryName = "createFFmpegModule$suffix"
+    tasks.register<Exec>("linkFFmpegWasm$suffix") {
+        group = "build"
+        description = "Links the $library-only asynchronous WebAssembly runtime."
+        onlyIf { canBuildWebWasm }
+        dependsOn(buildWebWasm)
+        doFirst {
+            outputDir.mkdirs()
+            writeWebExports(exportsFile, setOf(section))
+            val archives = listOf(
+                "libavdevice/libavdevice.a",
+                "libavfilter/libavfilter.a",
+                "libavformat/libavformat.a",
+                "libavcodec/libavcodec.a",
+                "libswresample/libswresample.a",
+                "libswscale/libswscale.a",
+                "libavutil/libavutil.a",
+            ).joinToString(" ") { "\"${ffmpegWasmDir.resolve(it).absolutePath.replace('\\', '/')}\"" }
+            script.writeText(
+                """
+                #!/bin/sh
+                set -e
+                cd "${ffmpegWasmDir.absolutePath.replace('\\', '/')}"
+                "${emccExecutable.replace('\\', '/')}" -std=c11 -O2 -fPIC -ffunction-sections -fdata-sections -I"${ffmpegDir.absolutePath.replace('\\', '/')}" -I"${ffmpegWasmDir.absolutePath.replace('\\', '/')}" -I"${jniDir.resolve("include").absolutePath.replace('\\', '/')}" -c "${jniDir.resolve("ffmpeg_kmp.c").absolutePath.replace('\\', '/')}" -o "${outputDir.resolve("shim.o").absolutePath.replace('\\', '/')}"
+                "${emccExecutable.replace('\\', '/')}" -O2 -sMODULARIZE=1 -sEXPORT_NAME=$factoryName -sWASM_ASYNC_COMPILATION=1 -sINCOMING_MODULE_JS_API=wasmBinary -sSINGLE_FILE=0 -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=67108864 -sSTACK_SIZE=8388608 -sFILESYSTEM=1 -sFORCE_FILESYSTEM=1 -sEXPORTED_FUNCTIONS=@"${exportsFile.absolutePath.replace('\\', '/')}" -sEXPORTED_RUNTIME_METHODS=HEAPU8,FS --no-entry -Wl,--gc-sections -Wl,--start-group $archives -Wl,--end-group "${outputDir.resolve("shim.o").absolutePath.replace('\\', '/')}" -o "${jsOutput.absolutePath.replace('\\', '/')}"
+                """.trimIndent() + "\n",
+            )
+            script.setExecutable(true)
+        }
+        commandLine("sh", script.absolutePath)
+        inputs.files(
+            jniDir.resolve("ffmpeg_kmp.c"),
+            jniDir.resolve("include/ffmpeg_kmp.h"),
+            jniDir.resolve("CMakeLists.txt"),
+        )
+        inputs.files(
+            ffmpegWasmDir.resolve("libavdevice/libavdevice.a"),
+            ffmpegWasmDir.resolve("libavfilter/libavfilter.a"),
+            ffmpegWasmDir.resolve("libavformat/libavformat.a"),
+            ffmpegWasmDir.resolve("libavcodec/libavcodec.a"),
+            ffmpegWasmDir.resolve("libswresample/libswresample.a"),
+            ffmpegWasmDir.resolve("libswscale/libswscale.a"),
+            ffmpegWasmDir.resolve("libavutil/libavutil.a"),
+        )
+        outputs.files(jsOutput, wasmOutput)
+    }
 }
 
 val generateWebWasmData = tasks.register<DefaultTask>("generateWebWasmData") {

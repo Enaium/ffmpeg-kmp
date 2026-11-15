@@ -92,44 +92,58 @@ Emscripten and Node are only needed to build or test the web artifacts. The
 embedded module makes the published klib self-contained at runtime; no extra
 `fetch`, script tag or asynchronous initialization is required.
 
-### npm package
+### npm packages
 
-Plain JavaScript and TypeScript consumers can use the same Emscripten build
-from npm:
+Plain JavaScript and TypeScript consumers can use the same Emscripten builds
+from npm. Each FFmpeg library has its own package, plus the aggregate package:
+
+| npm package | initializer | exported C ABI |
+|---|---|---|
+| `@enaium/libavutil-kmp` | `initLibavutilKmp()` | libavutil + shared version/error helpers |
+| `@enaium/libavcodec-kmp` | `initLibavcodecKmp()` | libavcodec + shared helpers |
+| `@enaium/libavformat-kmp` | `initLibavformatKmp()` | libavformat + shared helpers |
+| `@enaium/libavfilter-kmp` | `initLibavfilterKmp()` | libavfilter + shared helpers |
+| `@enaium/libswscale-kmp` | `initLibswscaleKmp()` | libswscale + shared helpers |
+| `@enaium/libswresample-kmp` | `initLibswresampleKmp()` | libswresample + shared helpers |
+| `@enaium/libavdevice-kmp` | `initLibavdeviceKmp()` | libavdevice + shared helpers |
+| `@enaium/ffmpeg-kmp` | `initFFmpegKmp()` | complete FFmpeg C ABI |
 
 ```bash
+npm install @enaium/libavcodec-kmp
+# or the complete runtime:
 npm install @enaium/ffmpeg-kmp
 ```
 
 ```javascript
-import { initFFmpegKmp } from "@enaium/ffmpeg-kmp";
+import { initLibavcodecKmp } from "@enaium/libavcodec-kmp";
 
-const api = await initFFmpegKmp();
+const api = await initLibavcodecKmp();
 const version = api.readString(
-  api.callInt("fk_version_info", 0, 0, 0, 0, 0, 0, 0),
+  api.callInt("fk_avcodec_version", 0, 0, 0, 0, 0, 0, 0),
 );
-console.log(version);
 ```
 
-The package ships `ffmpeg_kmp.js`, `ffmpeg_kmp.wasm` and a loader. The default
-`initFFmpegKmp()` reads both files relative to the installed module; pass
-`initFFmpegKmp({ runtime, wasm })` to override either with a URL, path, `URL`,
-`Uint8Array` or `ArrayBuffer`. The returned table exposes the `fk_*` C ABI
-through `callInt`, `callDouble`, the string/byte helpers and the MEMFS helpers
-(`readFile`, `writeFile`, `deleteFile`, `exists`).
+Each package ships `ffmpeg_kmp.js`, `ffmpeg_kmp.wasm` and a loader. The
+default initializer reads both files relative to the installed module; pass
+`{ runtime, wasm }` to override either with a URL, path, `URL`, `Uint8Array` or
+`ArrayBuffer`. The returned table exposes the `fk_*` C ABI through `callInt`,
+`callDouble`, the string/byte helpers and the MEMFS helpers (`readFile`,
+`writeFile`, `deleteFile`, `exists`).
 
 Staging and publishing:
 
 ```bash
-./gradlew :ffmpeg-kmp:assembleWasmNpm    # stages ffmpeg-kmp/build/npm
-./gradlew :ffmpeg-kmp:publishWasmNpm     # npm publish --access public --tag latest
+./gradlew :ffmpeg-kmp:assembleWasmNpm  # stages build/npm/<package-name>
+./gradlew :ffmpeg-kmp:publishWasmNpm   # publishes all eight packages
+# or one package:
+./gradlew :ffmpeg-kmp:publishWasmNpmLibavcodec
 ```
 
-`publishWasmNpm` reads the token from `npm.publish.key` in
-`~/.gradle/gradle.properties` (or `-Pnpm.publish.key=<token>`); the package is
-published from a local machine, not by the CI publish workflow. npm requires
-three-component semver, so binding version `9.0.2.1` is published as `9.0.2-1`
-with the `latest` tag.
+`publishWasmNpm` publishes each package separately. The token is read from
+`npm.publish.key` in `~/.gradle/gradle.properties` (or
+`-Pnpm.publish.key=<token>`); the packages are published from a local machine,
+not by the CI publish workflow. npm requires three-component semver, so binding
+version `9.0.2.1` is published as `9.0.2-1` with the `latest` tag.
 
 ## Using the library
 
