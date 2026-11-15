@@ -126,9 +126,10 @@ Staging and publishing:
 ```
 
 `publishWasmNpm` reads the token from `npm.publish.key` in
-`~/.gradle/gradle.properties` (or `-Pnpm.publish.key=<token>`); CI uses the
-`NPM_PUBLISH_KEY` secret. npm requires three-component semver, so binding
-version `9.0.2.1` is published as `9.0.2-1` with the `latest` tag.
+`~/.gradle/gradle.properties` (or `-Pnpm.publish.key=<token>`); the package is
+published from a local machine, not by the CI publish workflow. npm requires
+three-component semver, so binding version `9.0.2.1` is published as `9.0.2-1`
+with the `latest` tag.
 
 ## Using the library
 
@@ -345,12 +346,12 @@ the configure script through MSYS2/Git Bash.
 - [`.github/workflows/test.yml`](.github/workflows/test.yml) runs JVM, native,
   JS/Wasm and Android host tests plus the examples on macOS, Linux and Windows.
 - [`.github/workflows/publish.yml`](.github/workflows/publish.yml) publishes
-  every artifact to Maven Central from the runner that can build it, and the
-  npm package from the macOS runner.
+  every Maven Central artifact from the runner that can build it. The npm
+  package is published locally with `:ffmpeg-kmp:publishWasmNpm`.
 
-Both workflows are manual (`workflow_dispatch`). Publishing requires
+Both workflows are manual (`workflow_dispatch`). Maven publishing requires
 `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD`, `SIGNING_KEY`,
-`SIGNING_KEY_ID`, `SIGNING_PASSWORD` and `NPM_PUBLISH_KEY` repository secrets.
+`SIGNING_KEY_ID` and `SIGNING_PASSWORD` repository secrets.
 
 ## License
 
