@@ -78,9 +78,13 @@ val androidNdkHost = androidNdkHostTag()
 val hasSigningKey = providers.gradleProperty("signing.keyId").isPresent ||
     providers.gradleProperty("signing.secretKeyRingFile").isPresent
 
+val kmpVersion = "1.0.1"
+val pinnedFfmpegVersion = "9.0.2"
+val bindingVersion = "$kmpVersion-fixed.$pinnedFfmpegVersion"
+
 allprojects {
     group = "cn.enaium.ffmpeg"
-    version = "9.0.2.1"
+    version = bindingVersion
 
     extra["hasSigningKey"] = hasSigningKey
     extra["cmakeExecutable"] = resolveCmakeExecutable()

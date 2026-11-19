@@ -10,7 +10,8 @@ disabled, portable C kernels) and driven through one stable C ABI
 JNI bridge and the Kotlin/Native cinterop, so both platforms share handle
 management, error codes and data copying.
 
-Binding version: **9.0.2.1** — FFmpeg **9.0.2**, binding revision **1**.
+Version scheme: **1.0.1-fixed.9.0.2** — `1.0.1` is the KMP module version and
+`9.0.2` is the pinned FFmpeg version.
 
 > FFmpeg 9.0 removed `libpostproc` upstream, so no `libpostproc-kmp` artifact
 > exists. The seven libraries shipped by FFmpeg 9.0.2 are bound.
@@ -33,7 +34,7 @@ root-package type aliases. The shared JNI, Kotlin/Native and WebAssembly runtime
 lives in the internal `ffmpeg-kmp-bridge` artifact. Each `lib*-kmp` artifact
 contains its own binding API and depends on `ffmpeg-kmp-bridge` plus the
 libraries it builds on, so it stays independently addressable. The bridge is
-published as `cn.enaium.ffmpeg:ffmpeg-kmp-bridge:9.0.2.1` and is normally
+published as `cn.enaium.ffmpeg:ffmpeg-kmp-bridge:1.0.1-fixed.9.0.2` and is normally
 consumed transitively.
 
 ## Supported targets
@@ -142,17 +143,17 @@ Staging and publishing:
 `publishWasmNpm` publishes each package separately. The token is read from
 `npm.publish.key` in `~/.gradle/gradle.properties` (or
 `-Pnpm.publish.key=<token>`); the packages are published from a local machine,
-not by the CI publish workflow. npm requires three-component semver, so binding
-version `9.0.2.1` is published as `9.0.2-1` with the `latest` tag.
+not by the CI publish workflow. The packages use the same
+`1.0.1-fixed.9.0.2` version and are published with the `latest` tag.
 
 ## Using the library
 
 ```kotlin
 dependencies {
-    implementation("cn.enaium.ffmpeg:ffmpeg-kmp:9.0.2.1")
+    implementation("cn.enaium.ffmpeg:ffmpeg-kmp:1.0.1-fixed.9.0.2")
     // or only what you need:
-    implementation("cn.enaium.ffmpeg:libavcodec-kmp:9.0.2.1")
-    implementation("cn.enaium.ffmpeg:libavformat-kmp:9.0.2.1")
+    implementation("cn.enaium.ffmpeg:libavcodec-kmp:1.0.1-fixed.9.0.2")
+    implementation("cn.enaium.ffmpeg:libavformat-kmp:1.0.1-fixed.9.0.2")
 }
 ```
 

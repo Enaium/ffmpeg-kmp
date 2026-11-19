@@ -25,7 +25,7 @@ import kotlin.test.assertTrue
 class FFmpegIntegrationTest {
     @Test
     fun versionSurface() {
-        assertEquals("9.0.2.1", FFmpeg.BINDING_VERSION)
+        assertEquals("1.0.1-fixed.9.0.2", FFmpeg.BINDING_VERSION)
         assertEquals("9.0.2", FFmpeg.FFMPEG_VERSION)
         assertTrue(FFmpeg.versionInfo.isNotEmpty())
         assertTrue(FFmpeg.avutilVersion.startsWith("61."))

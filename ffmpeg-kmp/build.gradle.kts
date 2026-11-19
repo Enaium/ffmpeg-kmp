@@ -92,14 +92,9 @@ kotlin {
 // keep the embedded klib path; plain JavaScript consumers instantiate the same
 // runtime through initFFmpegKmp().
 //
-// npm only accepts three-component semver, so 9.0.2.1 becomes 9.0.2-1. The
-// package is still published with the `latest` tag.
-val npmPackageVersion: String by lazy {
-    val parts = rootProject.version.toString().split('.')
-    val base = parts.take(3).joinToString(".")
-    val revision = parts.drop(3).joinToString(".")
-    if (revision.isEmpty()) base else "$base-$revision"
-}
+// The release scheme (for example 1.0.1-fixed.9.0.2) is already valid npm
+// semver: three core components followed by a prerelease identifier.
+val npmPackageVersion: String by lazy { rootProject.version.toString() }
 
 data class NpmLibrary(
     val artifact: String,

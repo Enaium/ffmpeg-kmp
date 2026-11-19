@@ -14,8 +14,8 @@ import cn.enaium.ffmpeg.native.FFmpegNative
 
 /** Aggregate entry point for the ffmpeg-kmp bundle. */
 public object FFmpeg {
-    /** Binding version: FFmpeg 9.0.2, binding revision 1. */
-    public const val BINDING_VERSION: String = "9.0.2.1"
+    /** KMP module 1.0.1, pinned to FFmpeg 9.0.2. */
+    public const val BINDING_VERSION: String = "1.0.1-fixed.9.0.2"
 
     /** FFmpeg version this binding was generated for. */
     public const val FFMPEG_VERSION: String = "9.0.2"

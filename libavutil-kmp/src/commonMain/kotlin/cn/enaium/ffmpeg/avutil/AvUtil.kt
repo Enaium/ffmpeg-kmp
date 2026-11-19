@@ -21,8 +21,8 @@ public object AvVersion {
 
 /** FFmpeg-wide build information. */
 public object AvUtil {
-    /** Binding version (FFmpeg 9.0.2, binding revision 1). */
-    public const val BINDING_VERSION: String = "9.0.2.1"
+    /** KMP module 1.0.1, pinned to FFmpeg 9.0.2. */
+    public const val BINDING_VERSION: String = "1.0.1-fixed.9.0.2"
 
     public val version: Int get() = FFmpegNative.avutilVersion()
     public val versionString: String get() = AvVersion.toString(version)

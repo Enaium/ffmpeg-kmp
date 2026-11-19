@@ -123,36 +123,37 @@ jobs:
       - name: Verify Maven Local artifacts
         run: |
           REPO="$HOME/.m2/repository/cn/enaium/ffmpeg"
-          test -f "$REPO/ffmpeg-kmp-jvm/9.0.2.1/ffmpeg-kmp-jvm-9.0.2.1.pom" \
+          VERSION="1.0.1-fixed.9.0.2"
+          test -f "$REPO/ffmpeg-kmp-jvm/$VERSION/ffmpeg-kmp-jvm-$VERSION.pom" \
             || { echo "FAIL: aggregate JVM POM missing"; exit 1; }
           grep -q "ffmpeg-kmp-bridge-jvm" \
-            "$REPO/ffmpeg-kmp-jvm/9.0.2.1/ffmpeg-kmp-jvm-9.0.2.1.pom" \
+            "$REPO/ffmpeg-kmp-jvm/$VERSION/ffmpeg-kmp-jvm-$VERSION.pom" \
             || { echo "FAIL: aggregate POM lacks the bridge"; exit 1; }
           grep -q "libavcodec-kmp-jvm" \
-            "$REPO/ffmpeg-kmp-jvm/9.0.2.1/ffmpeg-kmp-jvm-9.0.2.1.pom" \
+            "$REPO/ffmpeg-kmp-jvm/$VERSION/ffmpeg-kmp-jvm-$VERSION.pom" \
             || { echo "FAIL: aggregate POM lacks libavcodec-kmp"; exit 1; }
-          unzip -l "$REPO/ffmpeg-kmp-bridge-jvm/9.0.2.1/ffmpeg-kmp-bridge-jvm-9.0.2.1.jar" \
+          unzip -l "$REPO/ffmpeg-kmp-bridge-jvm/$VERSION/ffmpeg-kmp-bridge-jvm-$VERSION.jar" \
             | grep -q "cn/enaium/ffmpeg/native/FFmpegNative.class" \
             || { echo "FAIL: bridge JVM jar lacks FFmpegNative"; exit 1; }
           grep -q "ffmpeg-kmp-bridge-jvm" \
-            "$REPO/libavcodec-kmp-jvm/9.0.2.1/libavcodec-kmp-jvm-9.0.2.1.pom" \
+            "$REPO/libavcodec-kmp-jvm/$VERSION/libavcodec-kmp-jvm-$VERSION.pom" \
             || { echo "FAIL: libavcodec-kmp POM lacks the bridge"; exit 1; }
           grep -q "libavutil-kmp-jvm" \
-            "$REPO/libavcodec-kmp-jvm/9.0.2.1/libavcodec-kmp-jvm-9.0.2.1.pom" \
+            "$REPO/libavcodec-kmp-jvm/$VERSION/libavcodec-kmp-jvm-$VERSION.pom" \
             || { echo "FAIL: libavcodec-kmp POM lacks libavutil-kmp"; exit 1; }
-          JNI_JAR="$REPO/ffmpeg-kmp-jni-jvm-darwin-aarch64/9.0.2.1/ffmpeg-kmp-jni-jvm-darwin-aarch64-9.0.2.1.jar"
+          JNI_JAR="$REPO/ffmpeg-kmp-jni-jvm-darwin-aarch64/$VERSION/ffmpeg-kmp-jni-jvm-darwin-aarch64-$VERSION.jar"
           test -f "$JNI_JAR" || { echo "FAIL: darwin JNI jar missing"; exit 1; }
           unzip -l "$JNI_JAR" | grep -q "libffmpeg_jni.dylib" \
             || { echo "FAIL: dylib missing from JNI jar"; exit 1; }
           test -f "$JNI_JAR.asc" || { echo "FAIL: JNI jar is not signed"; exit 1; }
-          test -f "$REPO/ffmpeg-kmp-jvm/9.0.2.1/ffmpeg-kmp-jvm-9.0.2.1.pom.asc" \
+          test -f "$REPO/ffmpeg-kmp-jvm/$VERSION/ffmpeg-kmp-jvm-$VERSION.pom.asc" \
             || { echo "FAIL: aggregate POM is not signed"; exit 1; }
           test -n "$(find "$REPO" -name '*.klib' -print -quit)" \
             || { echo "FAIL: no Apple klib published"; exit 1; }
           test -n "$(find "$REPO" -name '*.klib.asc' -print -quit)" \
             || { echo "FAIL: Apple klib is not signed"; exit 1; }
           for artifact in ffmpeg-kmp-js ffmpeg-kmp-wasm-js ffmpeg-kmp-bridge-js ffmpeg-kmp-bridge-wasm-js; do
-            test -d "$REPO/$artifact/9.0.2.1" \
+            test -d "$REPO/$artifact/$VERSION" \
               || { echo "FAIL: missing $artifact"; exit 1; }
           done
           echo "OK: macOS publication"
